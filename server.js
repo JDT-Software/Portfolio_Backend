@@ -7,14 +7,22 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+// CORS configuration for production - Allow your GitHub Pages domain
+app.use(cors({
+    origin: [
+        'https://jdt-software.github.io',
+        'http://localhost:3000',
+        'http://localhost:5173'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// Updated to serve static files from Frontend folder
-app.use(express.static(path.join(__dirname, '../Frontend')));
 
-// Nodemailer transporter configuration - Fixed: createTransport not createTransporter
+// Nodemailer transporter configuration
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -23,10 +31,29 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+// Health check endpoint for Render
+app.get('/', (req, res) => {
+    res.json({ 
+        status: 'Portfolio Backend API is running!',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'healthy',
+        service: 'portfolio-backend',
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Route to handle form submission
 app.post('/send-email', async (req, res) => {
     try {
         const { fullName, email, phone, subject, message } = req.body;
+
+        console.log('Received form submission:', { fullName, email, subject });
 
         // Validate required fields
         if (!fullName || !email || !message) {
@@ -42,25 +69,72 @@ app.post('/send-email', async (req, res) => {
             to: 'devwithjacques@gmail.com',
             subject: subject || 'New Contact Form Submission',
             html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: #df8908; border-bottom: 2px solid #df8908; padding-bottom: 10px;">
-                        New Contact Form Submission
-                    </h2>
-                    
-                    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                        <p><strong>Name:</strong> ${fullName}</p>
-                        <p><strong>Email:</strong> ${email}</p>
-                        <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
-                        <p><strong>Subject:</strong> ${subject || 'No subject'}</p>
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f5f5f5; border-radius: 10px; overflow: hidden;">
+                    <!-- Header Section -->
+                    <div style="background: linear-gradient(90deg, #df8908, #ff1d15); padding: 30px; text-align: center;">
+                        <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #ffffff;">
+                            🔥 New Contact Form Submission
+                        </h1>
+                        <p style="margin: 10px 0 0 0; font-size: 16px; color: #ffffff;">
+                            Someone wants to connect with you!
+                        </p>
                     </div>
                     
-                    <div style="background-color: #fff; padding: 20px; border-left: 4px solid #df8908; margin: 20px 0;">
-                        <h3 style="color: #333; margin-top: 0;">Message:</h3>
-                        <p style="line-height: 1.6; color: #555;">${message}</p>
+                    <!-- Content Section -->
+                    <div style="padding: 30px; background-color: #ffffff;">
+                        <!-- Contact Details Card -->
+                        <div style="background-color: #f8f9fa; border-left: 5px solid #ea580c; padding: 20px; margin-bottom: 20px; border-radius: 5px;">
+                            <h3 style="color: #ea580c; font-size: 20px; margin: 0 0 15px 0;">
+                                📋 Contact Details
+                            </h3>
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 8px 0; font-weight: bold; color: #ea580c; width: 80px;">Name:</td>
+                                    <td style="padding: 8px 0; color: #333;">${fullName}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; font-weight: bold; color: #ea580c;">Email:</td>
+                                    <td style="padding: 8px 0;">
+                                        <a href="mailto:${email}" style="color: #df8908; text-decoration: none; font-weight: bold;">${email}</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; font-weight: bold; color: #ea580c;">Phone:</td>
+                                    <td style="padding: 8px 0; color: #333;">${phone || 'Not provided'}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; font-weight: bold; color: #ea580c;">Subject:</td>
+                                    <td style="padding: 8px 0; color: #333;">${subject || 'No subject'}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <!-- Message Card -->
+                        <div style="background-color: #f8f9fa; border-left: 5px solid #df8908; padding: 20px; border-radius: 5px;">
+                            <h3 style="color: #ea580c; font-size: 20px; margin: 0 0 15px 0;">
+                                💬 Message
+                            </h3>
+                            <div style="background-color: #ffffff; padding: 15px; border-radius: 5px; border: 1px solid #e9ecef;">
+                                <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #333; white-space: pre-wrap;">${message}</p>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div style="text-align: center; margin-top: 30px; color: #888; font-size: 12px;">
-                        <p>This email was sent from your portfolio contact form</p>
+                    <!-- Footer Section -->
+                    <div style="background-color: #333333; padding: 20px; text-align: center;">
+                        <p style="margin: 0; font-size: 14px; color: #ffffff;">
+                            📧 Sent from your Portfolio Contact Form
+                        </p>
+                        <p style="margin: 10px 0 0 0; font-size: 14px;">
+                            <a href="https://jdt-software.github.io/Portfolio_Frontend/" style="color: #df8908; text-decoration: none; font-weight: bold;">
+                                🌐 Visit Portfolio Website
+                            </a>
+                        </p>
+                        <div style="margin-top: 15px;">
+                            <span style="color: #df8908; font-size: 18px; font-weight: bold;">
+                                Jacques du Toit - Web Developer
+                            </span>
+                        </div>
                     </div>
                 </div>
             `
@@ -68,6 +142,8 @@ app.post('/send-email', async (req, res) => {
 
         // Send email
         await transporter.sendMail(mailOptions);
+
+        console.log('Email sent successfully to:', mailOptions.to);
 
         res.json({ 
             success: true, 
@@ -78,16 +154,13 @@ app.post('/send-email', async (req, res) => {
         console.error('Error sending email:', error);
         res.status(500).json({ 
             success: false, 
-            message: 'Failed to send email. Please try again.' 
+            message: 'Failed to send email. Please try again.',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 });
 
-// Updated to serve the main HTML file from Frontend folder
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../Frontend/index.html'));
-});
-
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
