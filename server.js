@@ -7,10 +7,11 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORS configuration for production - Allow your GitHub Pages domain
+// CORS configuration for production
 app.use(cors({
     origin: [
         'https://jdt-software.github.io',
+        'https://portfolio-frontend-eosin-xi.vercel.app',  // ← Add your Vercel domain
         'http://localhost:3000',
         'http://localhost:5173'
     ],
