@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "portfolio",
   "private": true,
   "version": "0.0.0",
@@ -12,3 +13,23 @@
     "vite": "^6.3.5"
   }
 }
+=======
+  "name": "portfolio-website",
+  "version": "1.0.0",
+  "description": "Jacques du Toit Portfolio Website",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "nodemailer": "^6.9.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
+>>>>>>> 411abf3e7aeebc565eff76b023f1966d38880b11
