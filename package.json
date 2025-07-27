@@ -1,19 +1,4 @@
 {
-<<<<<<< HEAD
-  "name": "portfolio",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "devDependencies": {
-    "vite": "^6.3.5"
-  }
-}
-=======
   "name": "portfolio-website",
   "version": "1.0.0",
   "description": "Jacques du Toit Portfolio Website",
@@ -32,4 +17,3 @@
     "nodemon": "^3.0.1"
   }
 }
->>>>>>> 411abf3e7aeebc565eff76b023f1966d38880b11
