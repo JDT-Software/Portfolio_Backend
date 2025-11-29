@@ -112,21 +112,13 @@ app.post('/send-email', async (req, res) => {
       });
     }
 
-    // Prepare Mailgun message
-    const mailgunDomain = process.env.MAILGUN_DOMAIN;
-    const mailgunFrom = `Portfolio Contact <postmaster@${mailgunDomain}>`;
-    const mailgunTo = [
-      `Jacques du Toit <info@softflair.co.za>`
-    ];
-    const mailgunSubject = sanitized.subject || `Portfolio Contact: Message from ${sanitized.fullName}`;
-    const mailgunText = `New Contact Form Submission\n\nName: ${sanitized.fullName}\nEmail: ${sanitized.email}\nPhone: ${sanitized.phone || 'Not provided'}\nSubject: ${sanitized.subject || 'No subject'}\n\nMessage:\n${sanitized.message}\n\nSent on: ${new Date().toLocaleString()}`;
-
+    // Use Mailgun API as per provided snippet
     try {
-      const data = await mg.messages.create(mailgunDomain, {
-        from: mailgunFrom,
-        to: mailgunTo,
-        subject: mailgunSubject,
-        text: mailgunText,
+      const data = await mg.messages.create(process.env.MAILGUN_DOMAIN, {
+        from: "Softflair <info@softflair.co.za>",
+        to: ["info@softflair.co.za"],
+        subject: sanitized.subject || "Email Test",
+        text: sanitized.message || "This is a test email from Mailgun!"
       });
       console.log('Email sent successfully via Mailgun:', data);
       res.status(200).json({
