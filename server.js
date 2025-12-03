@@ -113,11 +113,109 @@ app.post('/send-email', async (req, res) => {
     }
 
     // Use Mailgun API
+    const emailSubject = sanitized.subject || `Portfolio Contact: Message from ${sanitized.fullName}`;
+    const emailText = `
+New Contact Form Submission
+
+Name: ${sanitized.fullName}
+Email: ${sanitized.email}
+Phone: ${sanitized.phone || 'Not provided'}
+Subject: ${sanitized.subject || 'No subject'}
+
+Message:
+${sanitized.message}
+
+---
+Sent on: ${new Date().toLocaleString()}
+Reply to: ${sanitized.email}
+    `.trim();
+
+    const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+  </style>
+</head>
+<body style="background-color: #0a0a0a; padding: 40px 20px;">
+  <div style="max-width: 600px; margin: 0 auto; background-color: #1a1a1a; border-radius: 10px; overflow: hidden; box-shadow: 0 0 20px rgba(5, 222, 139, 0.1);">
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #05de8b 0%, #037449 100%); padding: 40px 30px; text-align: center;">
+      <h1 style="color: #ffffff; font-size: 28px; font-weight: 600; margin: 0;">New Contact Form Submission</h1>
+      <p style="color: rgba(255, 255, 255, 0.9); font-size: 16px; margin-top: 10px;">Someone wants to connect with you</p>
+    </div>
+    
+    <!-- Content -->
+    <div style="padding: 40px 30px;">
+      <!-- Contact Details -->
+      <div style="background-color: #0a0a0a; border-left: 4px solid #05de8b; padding: 25px; margin-bottom: 25px; border-radius: 8px;">
+        <h2 style="color: #05de8b; font-size: 20px; font-weight: 600; margin: 0 0 20px 0;">Contact Details</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 10px 0; font-weight: 600; color: #05de8b; font-size: 14px; width: 90px;">Name:</td>
+            <td style="padding: 10px 0; color: #e0e0e0; font-size: 14px;">${sanitized.fullName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0; font-weight: 600; color: #05de8b; font-size: 14px;">Email:</td>
+            <td style="padding: 10px 0;">
+              <a href="mailto:${sanitized.email}" style="color: #05de8b; text-decoration: none; font-weight: 500; font-size: 14px;">${sanitized.email}</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0; font-weight: 600; color: #05de8b; font-size: 14px;">Phone:</td>
+            <td style="padding: 10px 0; color: #e0e0e0; font-size: 14px;">${sanitized.phone || 'Not provided'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0; font-weight: 600; color: #05de8b; font-size: 14px;">Subject:</td>
+            <td style="padding: 10px 0; color: #e0e0e0; font-size: 14px;">${sanitized.subject || 'No subject'}</td>
+          </tr>
+        </table>
+      </div>
+      
+      <!-- Message -->
+      <div style="background-color: #0a0a0a; border-left: 4px solid #05de8b; padding: 25px; border-radius: 8px;">
+        <h2 style="color: #05de8b; font-size: 20px; font-weight: 600; margin: 0 0 15px 0;">Message</h2>
+        <div style="background-color: #1a1a1a; padding: 20px; border-radius: 6px; border: 1px solid #2a2a2a;">
+          <p style="margin: 0; font-size: 15px; line-height: 1.7; color: #e0e0e0; white-space: pre-wrap;">${sanitized.message}</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Footer -->
+    <div style="background-color: #0a0a0a; padding: 30px; text-align: center; border-top: 1px solid #2a2a2a;">
+      <p style="margin: 0; font-size: 14px; color: #808080;">Sent from your Portfolio Contact Form</p>
+      <p style="margin: 15px 0 0 0;">
+        <a href="https://www.softflair.co.za" style="color: #05de8b; text-decoration: none; font-weight: 600; font-size: 14px;">Visit Portfolio Website</a>
+      </p>
+      <div style="margin-top: 20px;">
+        <span style="color: #05de8b; font-size: 18px; font-weight: 600;">SoftFlair</span>
+        <span style="color: #808080; font-size: 14px;"> - Web Development</span>
+      </div>
+      <div style="margin-top: 15px; font-size: 12px; color: #606060;">
+        ${new Date().toLocaleString()}
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+    `.trim();
+
     const data = await mg.messages.create(process.env.MAILGUN_DOMAIN, {
-      from: "Softflair <info@softflair.co.za>",
+      from: "Softflair Portfolio <postmaster@sandboxe07b5328fb0d44808cf52fc2eb5311d1.mailgun.org>",
       to: ["info@softflair.co.za"],
-      subject: sanitized.subject || "Email Test",
-      text: sanitized.message || "This is a test email from Mailgun!"
+      "h:Reply-To": sanitized.email,
+      subject: emailSubject,
+      text: emailText,
+      html: emailHtml
     });
     console.log('Email sent successfully via Mailgun:', data);
     
