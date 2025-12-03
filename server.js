@@ -112,28 +112,15 @@ app.post('/send-email', async (req, res) => {
       });
     }
 
-    // Use Mailgun API as per provided snippet
-    try {
-      const data = await mg.messages.create(process.env.MAILGUN_DOMAIN, {
-        from: "Softflair <info@softflair.co.za>",
-        to: ["info@softflair.co.za"],
-        subject: sanitized.subject || "Email Test",
-        text: sanitized.message || "This is a test email from Mailgun!"
-      });
-      console.log('Email sent successfully via Mailgun:', data);
-      res.status(200).json({
-        success: true,
-        message: 'Email sent successfully!'
-      });
-    } catch (error) {
-      console.error('Error sending email via Mailgun:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to send email. Please try again later.',
-        ...(process.env.NODE_ENV === 'development' && { error: error.message })
-      });
-    }
-
+    // Use Mailgun API
+    const data = await mg.messages.create(process.env.MAILGUN_DOMAIN, {
+      from: "Softflair <info@softflair.co.za>",
+      to: ["info@softflair.co.za"],
+      subject: sanitized.subject || "Email Test",
+      text: sanitized.message || "This is a test email from Mailgun!"
+    });
+    console.log('Email sent successfully via Mailgun:', data);
+    
     res.status(200).json({
       success: true,
       message: 'Email sent successfully!'
