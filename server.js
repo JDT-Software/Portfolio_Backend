@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const sgMail = require('@sendgrid/mail');
+const FormData = require('form-data');
+const Mailgun = require('mailgun.js');
 require('dotenv').config();
 
 const app = express();
@@ -28,8 +29,14 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Initialize SendGrid
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// Initialize Mailgun
+const mailgun = new Mailgun(FormData);
+const mg = mailgun.client({
+  username: 'api',
+  key: process.env.MAILGUN_API_KEY,
+  // Uncomment and set if using EU domain:
+  // url: 'https://api.eu.mailgun.net'
+});
 
 // Basic route for testing
 app.get('/', (req, res) => {
@@ -83,6 +90,8 @@ const validateContactForm = (data) => {
 
 // Email sending endpoint
 app.post('/send-email', async (req, res) => {
+    // TEMPORARY: Log if API key is loaded
+    console.log("Mailgun API key exists:", !!process.env.MAILGUN_API_KEY);
   try {
     console.log('Received contact form submission:', {
       fullName: req.body.fullName,
@@ -103,112 +112,27 @@ app.post('/send-email', async (req, res) => {
       });
     }
 
-    // Check if SendGrid API key exists
-    if (!process.env.SENDGRID_API_KEY) {
-      console.error('SendGrid API key missing');
-      return res.status(500).json({
+    // Use Mailgun API as per provided snippet
+    try {
+      const data = await mg.messages.create(process.env.MAILGUN_DOMAIN, {
+        from: "Softflair <info@softflair.co.za>",
+        to: ["info@softflair.co.za"],
+        subject: sanitized.subject || "Email Test",
+        text: sanitized.message || "This is a test email from Mailgun!"
+      });
+      console.log('Email sent successfully via Mailgun:', data);
+      res.status(200).json({
+        success: true,
+        message: 'Email sent successfully!'
+      });
+    } catch (error) {
+      console.error('Error sending email via Mailgun:', error);
+      res.status(500).json({
         success: false,
-        message: 'Server configuration error'
+        message: 'Failed to send email. Please try again later.',
+        ...(process.env.NODE_ENV === 'development' && { error: error.message })
       });
     }
-
-    // Email content using SendGrid
-    const msg = {
-      to: 'devwithjacques@gmail.com',
-      from: 'devwithjacques@gmail.com', // Must be verified in SendGrid
-      replyTo: sanitized.email,
-      subject: sanitized.subject || `Portfolio Contact: Message from ${sanitized.fullName}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f5f5f5; border-radius: 10px; overflow: hidden;">
-          <!-- Header Section -->
-          <div style="background: linear-gradient(90deg, #df8908, #ff1d15); padding: 30px; text-align: center;">
-            <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #ffffff;">
-              New Contact Form Submission
-            </h1>
-            <p style="margin: 10px 0 0 0; font-size: 16px; color: #ffffff;">
-              Someone wants to connect with you!
-            </p>
-          </div>
-          
-          <!-- Content Section -->
-          <div style="padding: 30px; background-color: #ffffff;">
-            <!-- Contact Details Card -->
-            <div style="background-color: #f8f9fa; border-left: 5px solid #ea580c; padding: 20px; margin-bottom: 20px; border-radius: 5px;">
-              <h3 style="color: #ea580c; font-size: 20px; margin: 0 0 15px 0;">
-                Contact Details
-              </h3>
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td style="padding: 8px 0; font-weight: bold; color: #ea580c; width: 80px;">Name:</td>
-                  <td style="padding: 8px 0; color: #333;">${sanitized.fullName}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; font-weight: bold; color: #ea580c;">Email:</td>
-                  <td style="padding: 8px 0;">
-                    <a href="mailto:${sanitized.email}" style="color: #df8908; text-decoration: none; font-weight: bold;">${sanitized.email}</a>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; font-weight: bold; color: #ea580c;">Phone:</td>
-                  <td style="padding: 8px 0; color: #333;">${sanitized.phone || 'Not provided'}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; font-weight: bold; color: #ea580c;">Subject:</td>
-                  <td style="padding: 8px 0; color: #333;">${sanitized.subject || 'No subject'}</td>
-                </tr>
-              </table>
-            </div>
-            
-            <!-- Message Card -->
-            <div style="background-color: #f8f9fa; border-left: 5px solid #df8908; padding: 20px; border-radius: 5px;">
-              <h3 style="color: #ea580c; font-size: 20px; margin: 0 0 15px 0;">
-                Message
-              </h3>
-              <div style="background-color: #ffffff; padding: 15px; border-radius: 5px; border: 1px solid #e9ecef;">
-                <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #333; white-space: pre-wrap;">${sanitized.message}</p>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Footer Section -->
-          <div style="background-color: #333333; padding: 20px; text-align: center;">
-            <p style="margin: 0; font-size: 14px; color: #ffffff;">
-              Sent from your Portfolio Contact Form
-            </p>
-            <p style="margin: 10px 0 0 0; font-size: 14px;">
-              <a href="https://www.softflair.co.za" style="color: #df8908; text-decoration: none; font-weight: bold;">
-                Visit Portfolio Website
-              </a>
-            </p>
-            <div style="margin-top: 15px;">
-              <span style="color: #df8908; font-size: 18px; font-weight: bold;">
-                Jacques du Toit - Web Developer
-              </span>
-            </div>
-            <div style="margin-top: 10px; font-size: 12px; color: #999;">
-              Sent on: ${new Date().toLocaleString()}
-            </div>
-          </div>
-        </div>
-      `,
-      text: `
-New Contact Form Submission
-
-Name: ${sanitized.fullName}
-Email: ${sanitized.email}
-Phone: ${sanitized.phone || 'Not provided'}
-Subject: ${sanitized.subject || 'No subject'}
-
-Message:
-${sanitized.message}
-
-Sent on: ${new Date().toLocaleString()}
-      `
-    };
-
-    // Send email using SendGrid
-    await sgMail.send(msg);
-    console.log('Email sent successfully via SendGrid');
 
     res.status(200).json({
       success: true,
@@ -246,7 +170,7 @@ app.use('*', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📧 Email service: SendGrid`);
+  console.log(`📧 Email service: Mailgun`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔐 CORS configured for multiple origins`);
 });
